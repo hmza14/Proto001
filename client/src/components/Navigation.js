@@ -13,7 +13,7 @@ const NAVIGATION = [
   { kind: 'header', title: 'Analytics' },
   {
     segment: 'reports',
-    title: 'Reports',
+    title: 'Reportss',
     icon: <BarChartIcon />,
     children: [
       { segment: 'sales', title: 'Sales', icon: <DescriptionIcon /> },
