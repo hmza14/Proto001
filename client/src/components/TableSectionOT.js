@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { sampleOTData } from './sampleData';
 import {
   Box,
   Table,
@@ -30,7 +31,11 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds }) {
         setOTRows(response.data.data); // Set the OT rows
         setOtIds(response.data.data.map((row) => row.oth_keyu)); // Extract and set OT IDs
       } catch (err) {
-        console.error('Error fetching OT data:', err.message);
+        //console.error('Error fetching OT data:', err.message);
+        console.log('Using sample data instead:', err.message);
+        // Fallback to sample data if API fails
+        setOTRows(sampleOTData);
+        setOtIds(sampleOTData.map((row) => row.oth_keyu));
       }
     };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { sampleCMDData } from './sampleData';
 import {
   Box,
   Table,
@@ -25,21 +26,35 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
   const [selectedCMD, setSelectedCMD] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOTId, setSelectedOTId] = useState('');
-  const [page, setPage] = useState(0); // Current page
-  const [rowsPerPage, setRowsPerPage] = useState(5); // Rows per page
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     const fetchCmdRows = async () => {
       try {
         const response = await axios.get('http://localhost:8800/cmd');
-        setCmdRows(response.data.data); // Assuming response.data contains the array of CMD rows
+        setCmdRows(response.data.data);
       } catch (err) {
-        console.error('Error fetching CMD data:', err.message);
+		//console.error('Error fetching CMD data:', err.message);
+        console.log('Using sample data instead:', err.message);
+        // Fallback to sample data if API fails
+        setCmdRows(sampleCMDData);
       }
     };
 
     fetchCmdRows();
   }, [setCmdRows]);
+
+  const handleSelectAllClick = (event) => {
+    if (event.target.checked) {
+      // Select all rows on the current page
+      const currentPageRows = cmdRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+      const newSelectedIds = currentPageRows.map(row => row.otl_keyu);
+      setSelectedCMD(newSelectedIds);
+      return;
+    }
+    setSelectedCMD([]);
+  };
 
   const handleSelectCMD = (cmdId, isSelected) => {
     setSelectedCMD((prevSelected) =>
@@ -70,6 +85,14 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
     setPage(0);
   };
 
+  // Get current page rows
+  const currentPageRows = cmdRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  // Check if all rows on current page are selected
+  const isAllCurrentPageSelected = currentPageRows.length > 0 && 
+    currentPageRows.every(row => selectedCMD.includes(row.otl_keyu));
+  // Check if some but not all rows are selected
+  const isSomeSelected = selectedCMD.length > 0 && !isAllCurrentPageSelected;
+
   return (
     <Box sx={{ padding: 1 }}>
       <Typography
@@ -78,13 +101,19 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
         component="div"
         gutterBottom
       >
-       Les arrêts non planifiées:
+        Les arrêts non planifiées:
       </Typography>
       <TableContainer component={Paper}>
-        <Table  size="small">
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Select</TableCell>
+              <TableCell>
+                <Checkbox
+                  indeterminate={isSomeSelected}
+                  checked={isAllCurrentPageSelected}
+                  onChange={handleSelectAllClick}
+                />
+              </TableCell>
               <TableCell>ID</TableCell>
               <TableCell>Task Code</TableCell>
               <TableCell>Task Label</TableCell>
@@ -92,8 +121,8 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {cmdRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
-              <TableRow key={row.otl_keyu} hover >
+            {currentPageRows.map((row) => (
+              <TableRow key={row.otl_keyu} hover>
                 <TableCell>
                   <Checkbox
                     checked={selectedCMD.includes(row.otl_keyu)}
