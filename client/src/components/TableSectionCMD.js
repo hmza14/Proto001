@@ -22,6 +22,19 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
+// Custom labels for the table pagination
+const frenchTableLabels = {
+  labelRowsPerPage: "Afficher par page:",
+  labelDisplayedRows: ({ from, to, count }) =>
+    `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`} entrées`,
+  getItemAriaLabel: (type) => {
+    if (type === 'first') return 'Première page';
+    if (type === 'last') return 'Dernière page';
+    if (type === 'next') return 'Page suivante';
+    return 'Page précédente';
+  }
+};
+
 function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
   const [selectedCMD, setSelectedCMD] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -35,9 +48,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
         const response = await axios.get('http://localhost:8800/cmd');
         setCmdRows(response.data.data);
       } catch (err) {
-		//console.error('Error fetching CMD data:', err.message);
         console.log('Using sample data instead:', err.message);
-        // Fallback to sample data if API fails
         setCmdRows(sampleCMDData);
       }
     };
@@ -47,7 +58,6 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
 
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      // Select all rows on the current page
       const currentPageRows = cmdRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
       const newSelectedIds = currentPageRows.map(row => row.otl_keyu);
       setSelectedCMD(newSelectedIds);
@@ -93,6 +103,17 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
   // Check if some but not all rows are selected
   const isSomeSelected = selectedCMD.length > 0 && !isAllCurrentPageSelected;
 
+  // Custom empty state message component
+  const EmptyRowsMessage = () => (
+    <TableRow>
+      <TableCell colSpan={5} align="center">
+        <Typography variant="body2" color="textSecondary">
+          Aucune donnée disponible
+        </Typography>
+      </TableCell>
+    </TableRow>
+  );
+
   return (
     <Box sx={{ padding: 1 }}>
       <Typography
@@ -101,7 +122,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
         component="div"
         gutterBottom
       >
-        Les arrêts non planifiées:
+        Les arrêts non planifiés:
       </Typography>
       <TableContainer component={Paper}>
         <Table size="small">
@@ -115,26 +136,30 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
                 />
               </TableCell>
               <TableCell>ID</TableCell>
-              <TableCell>Task Code</TableCell>
-              <TableCell>Task Label</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell>Code Tâche</TableCell>
+              <TableCell>Libellé Tâche</TableCell>
+              <TableCell>Statut</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {currentPageRows.map((row) => (
-              <TableRow key={row.otl_keyu} hover>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedCMD.includes(row.otl_keyu)}
-                    onChange={(e) => handleSelectCMD(row.otl_keyu, e.target.checked)}
-                  />
-                </TableCell>
-                <TableCell>{row.otl_keyu}</TableCell>
-                <TableCell>{row.otl_code}</TableCell>
-                <TableCell>{row.otl_lib}</TableCell>
-                <TableCell>{row.otl_stat}</TableCell>
-              </TableRow>
-            ))}
+            {cmdRows.length === 0 ? (
+              <EmptyRowsMessage />
+            ) : (
+              currentPageRows.map((row) => (
+                <TableRow key={row.otl_keyu} hover>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedCMD.includes(row.otl_keyu)}
+                      onChange={(e) => handleSelectCMD(row.otl_keyu, e.target.checked)}
+                    />
+                  </TableCell>
+                  <TableCell>{row.otl_keyu}</TableCell>
+                  <TableCell>{row.otl_code}</TableCell>
+                  <TableCell>{row.otl_lib}</TableCell>
+                  <TableCell>{row.otl_stat}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
         <TablePagination
@@ -145,6 +170,9 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage={frenchTableLabels.labelRowsPerPage}
+          labelDisplayedRows={frenchTableLabels.labelDisplayedRows}
+          getItemAriaLabel={frenchTableLabels.getItemAriaLabel}
         />
       </TableContainer>
       <Button
@@ -154,11 +182,11 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
         onClick={handleAssignClick}
         disabled={selectedCMD.length === 0}
       >
-        Assign to OT
+        Affecter à l'OT
       </Button>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-        <DialogTitle>Affectation</DialogTitle>
+        <DialogTitle>Affectation à l'ordre de transport</DialogTitle>
         <DialogContent>
           <Select
             value={selectedOTId}
@@ -167,7 +195,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
             displayEmpty
           >
             <MenuItem value="" disabled>
-              Select OT
+              Sélectionner un OT
             </MenuItem>
             {otIds.map((id) => (
               <MenuItem key={id} value={id}>
@@ -179,7 +207,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Annuler</Button>
           <Button onClick={handleDialogSubmit} disabled={!selectedOTId}>
-            Affecte
+            Affecter
           </Button>
         </DialogActions>
       </Dialog>
