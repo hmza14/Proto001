@@ -1,14 +1,15 @@
 import React from 'react';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+//import DashboardIcon from '@mui/icons-material/Dashboard';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import ContentPasteSearchIcon from '@mui/icons-material/ContentPasteSearch';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DescriptionIcon from '@mui/icons-material/Description';
 import LayersIcon from '@mui/icons-material/Layers';
 
 const NAVIGATION = [
   { kind: 'header', title: 'Main items' },
-  { segment: 'dashboard', title: 'Dashboard', icon: <DashboardIcon /> },
-  { segment: 'orders', title: 'Orders', icon: <ShoppingCartIcon /> },
+  { segment: 'planification', title: 'Planification', icon: <ScheduleIcon />, href: '/dashboard'  },
+  { segment: 'suivi', title: 'Suivi', icon: <ContentPasteSearchIcon />,href: '/suivi'  },
   { kind: 'divider' },
   { kind: 'header', title: 'Analytics' },
   {
