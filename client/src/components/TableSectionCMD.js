@@ -1,193 +1,296 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { sampleCMDData } from './sampleData';
 import {
   Box,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Checkbox,
   Button,
   Dialog,
   DialogTitle,
-  DialogActions,
   DialogContent,
+  DialogActions,
   Select,
   MenuItem,
   TableContainer,
   Paper,
-  TablePagination,
   Typography,
 } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 import axios from 'axios';
+import CustomGridToolbar from './CustomGridToolbarCMD';
+import AddCMDDialog from './AddCMDDialog';
+import ConfirmDialog from './ConfirmDialog';
+import frenchTableLabels from './frenchTableLabels'; 
 
-// Custom labels for the table pagination
-const frenchTableLabels = {
-  labelRowsPerPage: "Afficher par page:",
-  labelDisplayedRows: ({ from, to, count }) =>
-    `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`} entrées`,
-  getItemAriaLabel: (type) => {
-    if (type === 'first') return 'Première page';
-    if (type === 'last') return 'Dernière page';
-    if (type === 'next') return 'Page suivante';
-    return 'Page précédente';
-  }
-};
-
-function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
+function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
   const [selectedCMD, setSelectedCMD] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOTId, setSelectedOTId] = useState('');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [pageSize, setPageSize] = useState(5);
+  
+  const [selectedRowIds, setSelectedRowIds] = useState([]);
+  const [filterValue, setFilterValue] = useState('');
+  const [originalRows, setOriginalRows] = useState([]);
 
-  useEffect(() => {
-    const fetchCmdRows = async () => {
-      try {
-        const response = await axios.get('http://localhost:8800/cmd');
-        setCmdRows(response.data.data);
-      } catch (err) {
-        console.log('Using sample data instead:', err.message);
-        setCmdRows(sampleCMDData);
-      }
-    };
+  const [isAddCMDDialogOpen, setIsAddCMDDialogOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  
+  const [isDeleting, setIsDeleting] = useState(false);
 
-    fetchCmdRows();
+
+  const fetchCmdRows = useCallback(async () => {
+    try {
+      console.log("Fetching CMD rows...");
+      const response = await axios.get('http://localhost:8800/cmd');
+      // Filter out commands that are already assigned to an OT
+      const transformedData = response.data.data
+        .filter(row => !row.oth_keyu)
+        .map(row => ({
+          id: row.otl_keyu,
+          ...row
+        }));
+      console.log("Unassigned CMDs:", transformedData);
+      setCmdRows(transformedData);
+      setOriginalRows(transformedData); 
+    } catch (err) {
+      console.log('Using sample data instead:', err.message);
+      const transformedSampleData = sampleCMDData.map(row => ({
+        id: row.otl_keyu,
+        ...row
+      }));
+      setCmdRows(transformedSampleData);
+      setOriginalRows(transformedSampleData); 
+    }
   }, [setCmdRows]);
 
-  const handleSelectAllClick = (event) => {
-    if (event.target.checked) {
-      const currentPageRows = cmdRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-      const newSelectedIds = currentPageRows.map(row => row.otl_keyu);
-      setSelectedCMD(newSelectedIds);
-      return;
-    }
-    setSelectedCMD([]);
+  useEffect(() => {
+    fetchCmdRows();
+  }, [fetchCmdRows]);
+
+  
+  const handleAddRow = () => {
+    setIsAddCMDDialogOpen(true);
   };
 
-  const handleSelectCMD = (cmdId, isSelected) => {
-    setSelectedCMD((prevSelected) =>
-      isSelected ? [...prevSelected, cmdId] : prevSelected.filter((id) => id !== cmdId)
-    );
+  // Handle successful CMD creation
+  const handleCMDCreationSuccess = (newCMDData) => {
+    // Refresh the data from the backend instead of just adding to state
+    fetchCmdRows();
+  };
+
+  // Show confirmation dialog before delete
+  const handleDeleteSelectedRows = () => {
+    setIsConfirmDeleteOpen(true);
+  };
+  
+  // Handle actual deletion after confirmation
+  const handleConfirmDelete = async () => {
+    if (selectedRowIds.length === 0) {
+      setIsConfirmDeleteOpen(false);
+      return;
+    }
+    
+    setIsDeleting(true);
+    
+    try {
+      // Send delete request to backend
+      await axios.delete('http://localhost:8800/cmd', { 
+        data: { ids: selectedRowIds } 
+      });
+      
+      // Refresh data
+      await fetchCmdRows();
+      
+      // Clear selection
+      setSelectedRowIds([]);
+      setSelectedCMD([]);
+      
+    } catch (error) {
+      console.error('Error archiving CMDs:', error);
+      
+      let errorMessage = 'Une erreur est survenue lors de la suppression des commandes.';
+      
+      if (error.response) {
+        errorMessage += ` ${error.response.data.message || error.response.statusText}`;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsConfirmDeleteOpen(false);
+      setIsDeleting(false);
+    }
+  };
+
+  // Add new handler function for filtering
+  const handleFilterChange = (value) => {
+    setFilterValue(value);
+    
+    // If value is empty, show all rows
+    if (!value.trim()) {
+      setCmdRows(originalRows);
+      return;
+    }
+
+    // Filter rows based on all fields
+    const filteredRows = originalRows.filter(row => {
+      const searchStr = value.toLowerCase();
+      return (
+        row.otl_code?.toLowerCase().includes(searchStr) ||
+        row.otl_lib?.toLowerCase().includes(searchStr) ||
+        String(row.otl_stat)?.toLowerCase().includes(searchStr)
+      );
+    });
+
+    setCmdRows(filteredRows);
   };
 
   const handleAssignClick = () => {
     setDialogOpen(true);
   };
 
-  const handleDialogSubmit = () => {
-    setCmdRows((prevCmdRows) =>
-      prevCmdRows.filter((cmd) => !selectedCMD.includes(cmd.otl_keyu))
-    );
-    onAssignCMD(selectedOTId, selectedCMD.map((id) => cmdRows.find((cmd) => cmd.otl_keyu === id)));
-    setDialogOpen(false);
-    setSelectedCMD([]);
-    setSelectedOTId('');
+  const handleDialogSubmit = async () => {
+    try {
+      // Call the backend API to assign commands to OT
+      await axios.put('http://localhost:8800/assign-cmd-to-ot', {
+        otId: selectedOTId,
+        cmdIds: selectedCMD
+      });
+      
+      const selectedCmdRows = selectedCMD.map((id) => cmdRows.find((cmd) => cmd.id === id));
+      
+      // Update UI state - keep this exactly as original
+      setCmdRows((prevCmdRows) =>
+        prevCmdRows.filter((cmd) => !selectedCMD.includes(cmd.id))
+      );
+      onAssignCMD(selectedOTId, selectedCmdRows);
+      
+      // Reset selections
+      setDialogOpen(false);
+      setSelectedCMD([]);
+      setSelectedRowIds([]);
+      setSelectedOTId('');
+    } catch (error) {
+      console.error('Error assigning CMD to OT:', error);
+      alert('Une erreur est survenue lors de l\'affectation. Veuillez réessayer.');
+    }
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  // Get current page rows
-  const currentPageRows = cmdRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  // Check if all rows on current page are selected
-  const isAllCurrentPageSelected = currentPageRows.length > 0 && 
-    currentPageRows.every(row => selectedCMD.includes(row.otl_keyu));
-  // Check if some but not all rows are selected
-  const isSomeSelected = selectedCMD.length > 0 && !isAllCurrentPageSelected;
-
-  // Custom empty state message component
-  const EmptyRowsMessage = () => (
-    <TableRow>
-      <TableCell colSpan={5} align="center">
-        <Typography variant="body2" color="textSecondary">
-          Aucune donnée disponible
-        </Typography>
-      </TableCell>
-    </TableRow>
-  );
+  const columns = [
+    { field: 'otl_code', headerName: 'Code Tâche', width: 150 },
+    { field: 'otl_lib', headerName: 'Libellé Tâche', width: 200 },
+    { 
+      field: 'otl_stat', 
+      headerName: 'Statut', 
+      width: 130,
+      renderCell: (params) => {
+        // Handle both status codes properly
+        const statusValue = params.value;
+        
+        if (statusValue === 'NEW') {
+          return (
+            <Box
+              sx={{
+                backgroundColor: '#FFC107', // Yellow for Initial
+                color: '#fff',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontWeight: 'bold'
+              }}
+            >
+              Initial
+            </Box>
+          );
+        } else if (statusValue === '020') {
+          return (
+            <Box
+              sx={{
+                backgroundColor: '#4CAF50', // Green for Affecté
+                color: '#fff',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontWeight: 'bold'
+              }}
+            >
+              Affecté
+            </Box>
+          );
+        } else {
+          // Fallback for any other status
+          return (
+            <Box
+              sx={{
+                backgroundColor: '#FFC107', // Default to yellow
+                color: '#fff',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontWeight: 'bold'
+              }}
+            >
+              Initial
+            </Box>
+          );
+        }
+      }
+    }
+  ];
 
   return (
     <Box sx={{ padding: 1 }}>
-      <Typography
-        sx={{ flex: '1 1 100%' }}
-        variant="h6"
-        component="div"
-        gutterBottom
-      >
+      <Typography variant="h6" component="div" gutterBottom>
         Les arrêts non planifiés:
       </Typography>
       <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>
-                <Checkbox
-                  indeterminate={isSomeSelected}
-                  checked={isAllCurrentPageSelected}
-                  onChange={handleSelectAllClick}
-                />
-              </TableCell>
-              <TableCell>ID</TableCell>
-              <TableCell>Code Tâche</TableCell>
-              <TableCell>Libellé Tâche</TableCell>
-              <TableCell>Statut</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {cmdRows.length === 0 ? (
-              <EmptyRowsMessage />
-            ) : (
-              currentPageRows.map((row) => (
-                <TableRow key={row.otl_keyu} hover>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedCMD.includes(row.otl_keyu)}
-                      onChange={(e) => handleSelectCMD(row.otl_keyu, e.target.checked)}
-                    />
-                  </TableCell>
-                  <TableCell>{row.otl_keyu}</TableCell>
-                  <TableCell>{row.otl_code}</TableCell>
-                  <TableCell>{row.otl_lib}</TableCell>
-                  <TableCell>{row.otl_stat}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={cmdRows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage={frenchTableLabels.labelRowsPerPage}
-          labelDisplayedRows={frenchTableLabels.labelDisplayedRows}
-          getItemAriaLabel={frenchTableLabels.getItemAriaLabel}
-        />
+        <Box sx={{ width: '100%' }}>
+          <DataGrid
+            rows={cmdRows}
+            columns={columns}
+            autoHeight
+            checkboxSelection
+            slots={{
+              toolbar: CustomGridToolbar,
+            }}
+            slotProps={{
+              toolbar: {
+                onAddRow: handleAddRow,
+                onDeleteSelectedRows: handleDeleteSelectedRows,
+                selectedRowIds: selectedRowIds,
+                onFilterChange: handleFilterChange,
+                onAssignClick: handleAssignClick,
+                assignButtonDisabled: selectedCMD.length === 0
+              }
+            }}
+            initialState={{
+              pagination: {
+                paginationModel: { pageSize, page }
+              },
+            }}
+            pageSizeOptions={[5, 10, 25]}
+            onPaginationModelChange={(model) => {
+              setPage(model.page);
+              setPageSize(model.pageSize);
+            }}
+            onRowSelectionModelChange={(newSelection) => {
+              setSelectedCMD(newSelection);
+              setSelectedRowIds(newSelection); 
+            }}
+            localeText={frenchTableLabels}
+            getRowHeight={() => 'auto'}
+            sx={{
+              '& .MuiDataGrid-cell': { py: 1 },
+            }}
+            loading={isDeleting}
+          />
+        </Box>
       </TableContainer>
-      <Button
-        variant="contained"
-        color="primary"
-        sx={{ marginTop: 2 }}
-        onClick={handleAssignClick}
-        disabled={selectedCMD.length === 0}
-      >
-        Affecter à l'OT
-      </Button>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+      {/* Assignment Dialog */}
+      <Dialog 
+        open={dialogOpen} 
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Affectation à l'ordre de transport</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ mt: 1 }}>
           <Select
             value={selectedOTId}
             onChange={(e) => setSelectedOTId(e.target.value)}
@@ -197,9 +300,9 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
             <MenuItem value="" disabled>
               Sélectionner un OT
             </MenuItem>
-            {otIds.map((id) => (
-              <MenuItem key={id} value={id}>
-                {id}
+            {otRows.map((ot) => (
+              <MenuItem key={ot.oth_keyu} value={ot.oth_keyu}>
+                {ot.oth_icod} : {ot.oth_lib}
               </MenuItem>
             ))}
           </Select>
@@ -211,6 +314,26 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otIds }) {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Add CMD Dialog */}
+      <AddCMDDialog
+        open={isAddCMDDialogOpen}
+        onClose={() => setIsAddCMDDialogOpen(false)}
+        onSuccess={handleCMDCreationSuccess}
+      />
+      
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={isConfirmDeleteOpen}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Confirmer la suppression"
+        message={
+          selectedRowIds.length === 1
+            ? "Êtes-vous sûr de vouloir supprimer cette commande ?"
+            : `Êtes-vous sûr de vouloir supprimer ces ${selectedRowIds.length} commandes ?`
+        }
+      />
     </Box>
   );
 }
