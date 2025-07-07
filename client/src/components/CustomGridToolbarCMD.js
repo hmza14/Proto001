@@ -5,14 +5,19 @@ import {
 } from '@mui/x-data-grid';
 import { Button, TextField } from '@mui/material';
 
+
 function CustomGridToolbarCMD({ 
   onAddRow, 
+  onEditRow,           // Added new prop for edit action
   onDeleteSelectedRows, 
   selectedRowIds, 
   onFilterChange, 
   onAssignClick, 
   assignButtonDisabled 
 }) {
+  // Check if exactly one row is selected for edit button
+  const isEditButtonDisabled = selectedRowIds.length !== 1;
+
   return (
     <GridToolbarContainer>
       <Button
@@ -21,7 +26,18 @@ function CustomGridToolbarCMD({
         onClick={onAddRow}
         style={{ marginRight: '8px' }}
       >
-        Ajouter une commande
+        Ajouter un nouvel arrêt
+      </Button>
+
+      {/* New Edit Button */}
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={onEditRow}
+        disabled={isEditButtonDisabled}
+        style={{ marginRight: '8px' }}
+      >
+        Modifier CMD
       </Button>
 
       <Button

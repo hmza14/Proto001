@@ -19,9 +19,11 @@ import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
 import CustomGridToolbar from './CustomGridToolbarOT';
 import AddOTDialog from './AddOTDialog';
+import EditOTDialog from './EditOTDialog'; // Import the new EditOTDialog component
 import ConfirmDialog from './ConfirmDialog';
 import ValidateOTDialog from './ValidateOTDialog';
-import frenchTableLabels from './frenchTableLabels'; 
+import frenchTableLabels from './frenchTableLabels';
+import { buildApiUrl, API_ENDPOINTS } from './apiConfig'; 
 
 function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
   const [otRows, setOTRows] = useState([]);
@@ -34,8 +36,11 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
   const [isAddOTDialogOpen, setIsAddOTDialogOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
   const [isValidateOTDialogOpen, setIsValidateOTDialogOpen] = useState(false);
+  
+  // New state for EditOTDialog
+  const [isEditOTDialogOpen, setIsEditOTDialogOpen] = useState(false);
+  const [selectedOTForEdit, setSelectedOTForEdit] = useState(null);
 
   useEffect(() => {
     console.log("TableSectionOT - otAssignments updated:", otAssignments);
@@ -44,7 +49,8 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
   const fetchOTRows = useCallback(async () => {
     try {
       console.log("Fetching OT data with assignments:", Object.keys(otAssignments));
-      const response = await axios.get('http://localhost:8800/ot');
+      const response = await axios.get(buildApiUrl(API_ENDPOINTS.OT));
+      //
       
       // The backend will now exclude OTs with status '030'
       const transformedData = response.data.data.map(row => {
@@ -121,10 +127,30 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
     setIsAddOTDialogOpen(true);
   };
 
+  // New handler for edit button click
+  const handleEditRow = () => {
+    if (selectedRowIds.length === 1) {
+      // Find the selected OT data
+      const selectedOT = otRows.find(row => row.id === selectedRowIds[0]);
+      if (selectedOT) {
+        setSelectedOTForEdit(selectedOT);
+        setIsEditOTDialogOpen(true);
+      }
+    }
+  };
+
   // Handle successful OT creation
   const handleOTCreationSuccess = () => {
     // Refresh OT data from backend
     fetchOTRows();
+  };
+  
+  // Handle successful OT edit
+  const handleOTEditSuccess = () => {
+    // Refresh OT data from backend
+    fetchOTRows();
+    // Clear selection
+    setSelectedOTForEdit(null);
   };
 
   // Show confirmation dialog before delete
@@ -181,7 +207,7 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
       }
       
       // Send delete request to backend
-      await axios.delete('http://localhost:8800/ot', { 
+      await axios.delete(buildApiUrl(API_ENDPOINTS.OT), { 
         data: { ids: selectedRowIds } 
       });
       
@@ -243,7 +269,7 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
   const handleUnassignCMD = async (otId, cmdRow) => {
     try {
       // Call the backend API to unassign the command
-      await axios.put('http://localhost:8800/unassign-cmd-from-ot', {
+      await axios.put(buildApiUrl(API_ENDPOINTS.UNASSIGN_CMD_FROM_OT), {
         otId: otId,
         cmdId: cmdRow.otl_keyu
       });
@@ -303,7 +329,7 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
     return (
       <Box margin={1}>
         <Typography variant="subtitle2" component="div" gutterBottom>
-          Commandes affectés: {assignments.length > 0 ? assignments.length : 'Aucune'}
+          Arrêts affectés: {assignments.length > 0 ? assignments.length : 'Aucune'}
         </Typography>
         {assignments.length > 0 ? (
           <Table size="small" aria-label="assigned-cmd">
@@ -319,7 +345,7 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
               {assignments.map((cmdRow) => (
                 <TableRow key={cmdRow.otl_keyu}>
                   <TableCell>{cmdRow.otl_code}</TableCell>
-                  <TableCell>{cmdRow.otl_lib}</TableCell>
+                  <TableCell>{cmdRow.otl_pdnm}</TableCell>
                   <TableCell>
                     {cmdRow.otl_stat === '020' ? (
                       <Box
@@ -363,7 +389,7 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
             </TableBody>
           </Table>
         ) : (
-          <Typography variant="body2">Aucune commande affectée</Typography>
+          <Typography variant="body2">Aucun arrêt affecté</Typography>
         )}
       </Box>
     );
@@ -388,6 +414,7 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
             slotProps={{
               toolbar: {
                 onAddRow: handleAddRow,
+                onEditRow: handleEditRow, // Add handler for edit button
                 onDeleteSelectedRows: handleDeleteSelectedRows,
                 onValidateSelectedRows: handleValidateSelectedRows, 
                 selectedRowIds: selectedRowIds,
@@ -432,6 +459,17 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
         onSuccess={handleOTCreationSuccess}
       />
       
+      {/* Edit OT Dialog - NEW */}
+      <EditOTDialog
+        open={isEditOTDialogOpen}
+        onClose={() => {
+          setIsEditOTDialogOpen(false);
+          setSelectedOTForEdit(null);
+        }}
+        onSuccess={handleOTEditSuccess}
+        otData={selectedOTForEdit}
+      />
+      
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
         open={isConfirmDeleteOpen}
@@ -445,7 +483,7 @@ function TableSectionOT({ otAssignments, onUnassignCMD, setOtIds, setOtRows }) {
         }
       />
       
-      {/* Validate OT Dialog - NEW */}
+      {/* Validate OT Dialog */}
       <ValidateOTDialog
         open={isValidateOTDialogOpen}
         onClose={() => setIsValidateOTDialogOpen(false)}

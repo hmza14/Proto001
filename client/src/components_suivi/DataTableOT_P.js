@@ -7,6 +7,7 @@ import {
 import { DataGridPro, GridToolbar, GridLogicOperator } from '@mui/x-data-grid-pro';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import { buildApiUrl, API_ENDPOINTS } from '../components/apiConfig';
 
 const VISIBLE_FIELDS = ['oth_keyu', 'oth_icod', 'oth_lib', 'exp_lib'];
 
@@ -19,7 +20,8 @@ function DataTableOT_P({ setOtIds }) {
     const fetchOTRows = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:8800/ot');
+        const response = await axios.get(buildApiUrl(API_ENDPOINTS.OT));
+        //
         const data = response.data.data;
         if (data && data.length > 0) {
           const transformedData = data.map((row, index) => ({

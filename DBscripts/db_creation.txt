@@ -49,6 +49,8 @@ CREATE TABLE OTH_DAT (
     OTH_CINC VARCHAR(3),
     OTH_STAT VARCHAR(3) NOT NULL,
     OTH_TYPC VARCHAR(15) NOT NULL,
+	oth_cotr VARCHAR(250),
+	oth_sitd VARCHAR(35),
     OTH_SIDD TIMESTAMP,
     OTH_SIHD VARCHAR(6),
     OTH_TDPR SMALLINT,
@@ -93,21 +95,113 @@ CREATE TABLE OTH_DAT (
 );
 
 -- Table: OTL_DAT
-CREATE TABLE OTL_DAT (
-    OTL_KEYU INTEGER NOT NULL,
-	oth_keyu integer,
-	ACT_Code VARCHAR(10) NOT NULL,
-    OTL_CODE VARCHAR(25),
-    OTL_LIB VARCHAR(50),
-    OTL_TEDI SMALLINT,
-    OTL_TSTO SMALLINT,
-    OTL_STAT VARCHAR(3),
-    OTL_CRDA TIMESTAMP,
-	OTH_CRHE VARCHAR(6) NOT NULL,
-    OTL_CRQI VARCHAR(15),
-    OTL_MODA TIMESTAMP,
-    OTL_MOQI VARCHAR(15)
-);
+-- Table: public.otl_dat
+
+-- DROP TABLE IF EXISTS public.otl_dat;
+
+CREATE TABLE IF NOT EXISTS public.otl_dat
+(
+    otl_keyu integer NOT NULL,
+    oth_keyu integer,
+    act_code character varying(10) COLLATE pg_catalog."default" NOT NULL,
+    otl_code character varying(25) COLLATE pg_catalog."default",
+    otl_lib character varying(50) COLLATE pg_catalog."default",
+    otl_tedi smallint,
+    otl_tsto smallint,
+    otl_stat character varying(3) COLLATE pg_catalog."default",
+    otl_crda date,
+    otl_crhe character varying(6) COLLATE pg_catalog."default" NOT NULL,
+    otl_crqi character varying(15) COLLATE pg_catalog."default",
+    otl_moda date,
+    otl_mohe character varying(6) COLLATE pg_catalog."default",
+    otl_moqi character varying(15) COLLATE pg_catalog."default",
+    exp_code character varying(50) COLLATE pg_catalog."default",
+    exp_lib character varying(50) COLLATE pg_catalog."default",
+    otl_poch character varying(25) COLLATE pg_catalog."default",
+    otl_rfcl character varying(50) COLLATE pg_catalog."default",
+    loc_pdcd character varying(25) COLLATE pg_catalog."default",
+    otl_pdnm character varying(50) COLLATE pg_catalog."default",
+    otl_darp date,
+    otl_adr1 character varying(250) COLLATE pg_catalog."default",
+    otl_advl character varying(100) COLLATE pg_catalog."default",
+    otl_addp character varying(100) COLLATE pg_catalog."default",
+    otl_cgrp character varying(50) COLLATE pg_catalog."default",
+    otl_caxe character varying(50) COLLATE pg_catalog."default",
+    otl_cont character varying(100) COLLATE pg_catalog."default",
+    otl_ntel character varying(25) COLLATE pg_catalog."default",
+    loc_imel character varying(100) COLLATE pg_catalog."default",
+    loc_hope character varying(4) COLLATE pg_catalog."default",
+    loc_hclo character varying(4) COLLATE pg_catalog."default",
+    otl_thay boolean DEFAULT false,
+    otl_tgr boolean DEFAULT false,
+    otl_ttco boolean DEFAULT false,
+    otl_ttpl boolean DEFAULT false,
+    otl_tbl boolean DEFAULT false,
+    otl_tbil boolean DEFAULT false,
+    otl_tchq boolean DEFAULT false,
+    otl_tttc numeric(10,2),
+    act_devi character varying(10) COLLATE pg_catalog."default",
+    CONSTRAINT otl_dat_pkey PRIMARY KEY (otl_keyu)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.otl_dat
+    OWNER to postgres;
+
+COMMENT ON TABLE public.otl_dat
+    IS 'Transport Order Lines - Contains all stop/command information';
+
+COMMENT ON COLUMN public.otl_dat.otl_keyu
+    IS 'Primary key for order line';
+
+COMMENT ON COLUMN public.otl_dat.oth_keyu
+    IS 'Foreign key reference to OTH_DAT table';
+
+COMMENT ON COLUMN public.otl_dat.otl_poch
+    IS 'PO Chargeur - Required field, max 25 characters';
+
+COMMENT ON COLUMN public.otl_dat.otl_pdnm
+    IS 'Nom stop - Required field, max 50 characters';
+
+COMMENT ON COLUMN public.otl_dat.otl_adr1
+    IS 'Adresse de livraison - Required field, max 250 characters';
+
+COMMENT ON COLUMN public.otl_dat.otl_tttc
+    IS 'Valeur TTC - Decimal value with 2 decimal places';
+-- Index: idx_otl_code
+
+-- DROP INDEX IF EXISTS public.idx_otl_code;
+
+CREATE INDEX IF NOT EXISTS idx_otl_code
+    ON public.otl_dat USING btree
+    (otl_code COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_otl_crda
+
+-- DROP INDEX IF EXISTS public.idx_otl_crda;
+
+CREATE INDEX IF NOT EXISTS idx_otl_crda
+    ON public.otl_dat USING btree
+    (otl_crda ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_otl_oth_keyu
+
+-- DROP INDEX IF EXISTS public.idx_otl_oth_keyu;
+
+CREATE INDEX IF NOT EXISTS idx_otl_oth_keyu
+    ON public.otl_dat USING btree
+    (oth_keyu ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_otl_stat
+
+-- DROP INDEX IF EXISTS public.idx_otl_stat;
+
+CREATE INDEX IF NOT EXISTS idx_otl_stat
+    ON public.otl_dat USING btree
+    (otl_stat COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+	
 
 -- Table: OLD_DAT
 CREATE TABLE OLD_DAT (
@@ -119,16 +213,79 @@ CREATE TABLE OLD_DAT (
     OLD_UPDATED TIMESTAMP
 );
 
--- Table: LOC_DAT
-CREATE TABLE LOC_DAT (
-    LOC_KEYU INTEGER NOT NULL,
-    LOC_NAME VARCHAR(50),
-    LOC_CODE VARCHAR(25),
-    LOC_TYPE VARCHAR(10),
-    LOC_STAT SMALLINT,
-    LOC_CREATED TIMESTAMP,
-    LOC_UPDATED TIMESTAMP
-);
+-- Table: public.loc_dat
+-- DROP TABLE IF EXISTS public.loc_dat;
+
+CREATE TABLE IF NOT EXISTS public.loc_dat
+(
+    loc_keyu integer NOT NULL,
+    loc_pdcd character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    loc_pdnm character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    loc_adr1 character varying(250) COLLATE pg_catalog."default" NOT NULL,
+    loc_adr2 character varying(250) COLLATE pg_catalog."default",
+    loc_adr3 character varying(50) COLLATE pg_catalog."default",
+    loc_adr4 character varying(50) COLLATE pg_catalog."default",
+    loc_ntel character varying(15) COLLATE pg_catalog."default",
+    loc_fax character varying(20) COLLATE pg_catalog."default",
+    loc_imel character varying(100) COLLATE pg_catalog."default",
+    loc_advl character varying(25) COLLATE pg_catalog."default" NOT NULL,
+    loc_addp character varying(5) COLLATE pg_catalog."default",
+    loc_adcp character varying(15) COLLATE pg_catalog."default" NOT NULL,
+    loc_geoc character varying(15) COLLATE pg_catalog."default",
+    loc_cont character varying(150) COLLATE pg_catalog."default",
+    loc_cpay character varying(6) COLLATE pg_catalog."default",
+    loc_hope character varying(6) COLLATE pg_catalog."default",
+    loc_hclo character varying(6) COLLATE pg_catalog."default",
+    loc_stat character varying(3) COLLATE pg_catalog."default" DEFAULT '020'::character varying,
+    loc_crda date,
+    loc_crhe character varying(6) COLLATE pg_catalog."default",
+    loc_crqi character varying(20) COLLATE pg_catalog."default",
+    loc_moda date,
+    loc_mohe character varying(6) COLLATE pg_catalog."default",
+    loc_moqi character varying(20) COLLATE pg_catalog."default",
+    CONSTRAINT loc_dat_pkey PRIMARY KEY (loc_keyu),
+    CONSTRAINT loc_dat_pdcd_unique UNIQUE (loc_pdcd)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.loc_dat
+    OWNER to postgres;
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_loc_dat_stat ON public.loc_dat(loc_stat);
+CREATE INDEX IF NOT EXISTS idx_loc_dat_pdcd ON public.loc_dat(loc_pdcd);
+CREATE INDEX IF NOT EXISTS idx_loc_dat_pdnm ON public.loc_dat(loc_pdnm);
+CREATE INDEX IF NOT EXISTS idx_loc_dat_ville ON public.loc_dat(loc_advl);
+CREATE INDEX IF NOT EXISTS idx_loc_dat_cp ON public.loc_dat(loc_adcp);
+
+-- Add comments
+COMMENT ON TABLE public.loc_dat IS 'Table des localisations/points de livraison';
+COMMENT ON COLUMN public.loc_dat.loc_keyu IS 'Clé unique localisation';
+COMMENT ON COLUMN public.loc_dat.loc_pdcd IS 'Code point de livraison';
+COMMENT ON COLUMN public.loc_dat.loc_pdnm IS 'Nom point de livraison';
+COMMENT ON COLUMN public.loc_dat.loc_adr1 IS 'Adresse livraison 1';
+COMMENT ON COLUMN public.loc_dat.loc_adr2 IS 'Adresse livraison 2';
+COMMENT ON COLUMN public.loc_dat.loc_adr3 IS 'Adresse livraison 3';
+COMMENT ON COLUMN public.loc_dat.loc_adr4 IS 'Adresse livraison 4';
+COMMENT ON COLUMN public.loc_dat.loc_ntel IS 'Téléphone';
+COMMENT ON COLUMN public.loc_dat.loc_fax IS 'Fax du contact';
+COMMENT ON COLUMN public.loc_dat.loc_imel IS 'Email du contact';
+COMMENT ON COLUMN public.loc_dat.loc_advl IS 'Ville';
+COMMENT ON COLUMN public.loc_dat.loc_addp IS 'Département';
+COMMENT ON COLUMN public.loc_dat.loc_adcp IS 'Code postal';
+COMMENT ON COLUMN public.loc_dat.loc_geoc IS 'Géocodage';
+COMMENT ON COLUMN public.loc_dat.loc_cont IS 'Contact de la commande';
+COMMENT ON COLUMN public.loc_dat.loc_cpay IS 'Code pays';
+COMMENT ON COLUMN public.loc_dat.loc_hope IS 'Heure d''ouverture (HHMM)';
+COMMENT ON COLUMN public.loc_dat.loc_hclo IS 'Heure de fermeture (HHMM)';
+COMMENT ON COLUMN public.loc_dat.loc_stat IS 'Statut (020=Actif, 099=Archivé)';
+COMMENT ON COLUMN public.loc_dat.loc_crda IS 'Date de création';
+COMMENT ON COLUMN public.loc_dat.loc_crhe IS 'Heure de création (HHMMSS)';
+COMMENT ON COLUMN public.loc_dat.loc_crqi IS 'Qui a créé';
+COMMENT ON COLUMN public.loc_dat.loc_moda IS 'Date de modification';
+COMMENT ON COLUMN public.loc_dat.loc_mohe IS 'Heure de modification (HHMMSS)';
+COMMENT ON COLUMN public.loc_dat.loc_moqi IS 'Qui a modifié';
 
 -- Table: EXP_DAT
 CREATE TABLE EXP_DAT (
@@ -163,13 +320,44 @@ CREATE TABLE EQP_DAT (
     EQP_MODA TIMESTAMP
 );
 
--- Table: USR_DAT
-CREATE TABLE USR_DAT (
-    USR_KEYU INTEGER NOT NULL,
-    USR_NAME VARCHAR(50),
-    USR_EMAIL VARCHAR(50),
-    USR_ROLE VARCHAR(25),
-    USR_STATUS SMALLINT,
-    USR_CREATED TIMESTAMP,
-    USR_UPDATED TIMESTAMP
-);
+-- Updated usr_dat table with usr_actf field
+-- DROP TABLE IF EXISTS public.usr_dat;
+
+CREATE TABLE IF NOT EXISTS public.usr_dat
+(
+    usr_keyu integer NOT NULL,
+    usr_actf boolean DEFAULT true,
+    usr_name character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    usr_mtrc character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    usr_type character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    usr_lang character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    usr_limi date NOT NULL,
+    usr_mail character varying(128) COLLATE pg_catalog."default" NOT NULL,
+    usr_logn character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    usr_pass character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    usr_stat character varying(3) COLLATE pg_catalog."default" DEFAULT '020'::character varying,
+    usr_crda date,
+    usr_crhe character varying(6) COLLATE pg_catalog."default",
+    usr_crqi character varying(20) COLLATE pg_catalog."default",
+    usr_moda date,
+    usr_mohe character varying(6) COLLATE pg_catalog."default",
+    usr_moqi character varying(20) COLLATE pg_catalog."default",
+    CONSTRAINT usr_dat_pkey PRIMARY KEY (usr_keyu),
+    CONSTRAINT usr_dat_usr_logn_unique UNIQUE (usr_logn),
+    CONSTRAINT usr_dat_usr_type_check CHECK (usr_type IN ('Type1', 'Type2', 'Type3'))
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.usr_dat
+    OWNER to postgres;
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_usr_dat_stat ON public.usr_dat(usr_stat);
+CREATE INDEX IF NOT EXISTS idx_usr_dat_actf ON public.usr_dat(usr_actf);
+CREATE INDEX IF NOT EXISTS idx_usr_dat_logn ON public.usr_dat(usr_logn);
+CREATE INDEX IF NOT EXISTS idx_usr_dat_mail ON public.usr_dat(usr_mail);
+
+-- Add comments
+COMMENT ON COLUMN public.usr_dat.usr_actf IS 'Utilisateur actif (true/false)';
+COMMENT ON COLUMN public.usr_dat.usr_type IS 'Type d''utilisateur (Type1, Type2, Type3)';
