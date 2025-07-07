@@ -6,6 +6,7 @@ import TableSectionCMD from './TableSectionCMD';
 import KPIHeader from './KPIHeader'; // Import the KPIHeader component
 import axios from 'axios';
 import { sampleOTData } from './sampleData';
+import { buildApiUrl, API_ENDPOINTS } from './apiConfig';
 
 function DemoPageContent({ pathname, dividerPosition, setDividerPosition }) {
   const [cmdRows, setCmdRows] = useState([]);
@@ -18,7 +19,8 @@ function DemoPageContent({ pathname, dividerPosition, setDividerPosition }) {
     const fetchAssignments = async () => {
       try {
         console.log("Fetching assignments...");
-        const response = await axios.get('http://localhost:8800/assignments');
+        const response = await axios.get(buildApiUrl(API_ENDPOINTS.ASSIGNMENTS));
+        //
         if (response.data.status === 'success') {
           const assignments = response.data.data;
           console.log("Raw assignments from server:", assignments);
@@ -62,7 +64,7 @@ function DemoPageContent({ pathname, dividerPosition, setDividerPosition }) {
   useEffect(() => {
     const syncOTRows = async () => {
       try {
-        const response = await axios.get('http://localhost:8800/ot');
+        const response = await axios.get(buildApiUrl(API_ENDPOINTS.OT));
         const transformedData = response.data.data.map(row => ({
           id: row.oth_keyu,
           oth_keyu: row.oth_keyu,

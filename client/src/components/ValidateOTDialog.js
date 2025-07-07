@@ -16,6 +16,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import axios from 'axios';
+import { buildApiUrl, API_ENDPOINTS } from './apiConfig';
 
 function ValidateOTDialog({ open, onClose, onSuccess, selectedOTIds }) {
   const [selectedEquipment, setSelectedEquipment] = useState('');
@@ -34,7 +35,8 @@ function ValidateOTDialog({ open, onClose, onSuccess, selectedOTIds }) {
   const fetchEquipment = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('http://localhost:8800/equipment');
+      const response = await axios.get(buildApiUrl(API_ENDPOINTS.EQUIPMENT));
+      //
       if (response.data.status === 'success') {
         setEquipmentList(response.data.data);
       } else {
@@ -63,7 +65,7 @@ function ValidateOTDialog({ open, onClose, onSuccess, selectedOTIds }) {
     setIsLoading(true);
 
     try {
-      const response = await axios.put('http://localhost:8800/validate-ot', {
+      const response = await axios.put(buildApiUrl(API_ENDPOINTS.VALIDATE_OT), {
         otIds: selectedOTIds,
         equipmentId: selectedEquipment
       });

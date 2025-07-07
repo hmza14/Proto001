@@ -17,8 +17,10 @@ import { DataGrid } from '@mui/x-data-grid';
 import axios from 'axios';
 import CustomGridToolbar from './CustomGridToolbarCMD';
 import AddCMDDialog from './AddCMDDialog';
+import EditCMDDialog from './EditCMDDialog'; // Import the EditCMDDialog
 import ConfirmDialog from './ConfirmDialog';
 import frenchTableLabels from './frenchTableLabels'; 
+import { buildApiUrl, API_ENDPOINTS } from './apiConfig';
 
 function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
   const [selectedCMD, setSelectedCMD] = useState([]);
@@ -36,11 +38,15 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
   
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // NEW: State for EditCMDDialog
+  const [isEditCMDDialogOpen, setIsEditCMDDialogOpen] = useState(false);
+  const [selectedCMDForEdit, setSelectedCMDForEdit] = useState(null);
 
   const fetchCmdRows = useCallback(async () => {
     try {
       console.log("Fetching CMD rows...");
-      const response = await axios.get('http://localhost:8800/cmd');
+      const response = await axios.get(buildApiUrl(API_ENDPOINTS.CMD));
+      //
       // Filter out commands that are already assigned to an OT
       const transformedData = response.data.data
         .filter(row => !row.oth_keyu)
@@ -71,10 +77,30 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
     setIsAddCMDDialogOpen(true);
   };
 
+  // NEW: Handler for edit button click
+  const handleEditRow = () => {
+    if (selectedRowIds.length === 1) {
+      // Find the selected CMD data
+      const selectedCMD = cmdRows.find(row => row.id === selectedRowIds[0]);
+      if (selectedCMD) {
+        setSelectedCMDForEdit(selectedCMD);
+        setIsEditCMDDialogOpen(true);
+      }
+    }
+  };
+
   // Handle successful CMD creation
   const handleCMDCreationSuccess = (newCMDData) => {
     // Refresh the data from the backend instead of just adding to state
     fetchCmdRows();
+  };
+
+  // NEW: Handle successful CMD edit
+  const handleCMDEditSuccess = () => {
+    // Refresh CMD data from backend
+    fetchCmdRows();
+    // Clear selection
+    setSelectedCMDForEdit(null);
   };
 
   // Show confirmation dialog before delete
@@ -93,7 +119,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
     
     try {
       // Send delete request to backend
-      await axios.delete('http://localhost:8800/cmd', { 
+      await axios.delete(buildApiUrl(API_ENDPOINTS.CMD), { 
         data: { ids: selectedRowIds } 
       });
       
@@ -135,7 +161,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
       const searchStr = value.toLowerCase();
       return (
         row.otl_code?.toLowerCase().includes(searchStr) ||
-        row.otl_lib?.toLowerCase().includes(searchStr) ||
+        row.otl_pdnm?.toLowerCase().includes(searchStr) ||
         String(row.otl_stat)?.toLowerCase().includes(searchStr)
       );
     });
@@ -150,7 +176,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
   const handleDialogSubmit = async () => {
     try {
       // Call the backend API to assign commands to OT
-      await axios.put('http://localhost:8800/assign-cmd-to-ot', {
+      await axios.put(buildApiUrl(API_ENDPOINTS.ASSIGN_CMD_TO_OT), {
         otId: selectedOTId,
         cmdIds: selectedCMD
       });
@@ -176,7 +202,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
 
   const columns = [
     { field: 'otl_code', headerName: 'Code Tâche', width: 150 },
-    { field: 'otl_lib', headerName: 'Libellé Tâche', width: 200 },
+    { field: 'otl_pdnm', headerName: 'Libellé Tâche', width: 200 },
     { 
       field: 'otl_stat', 
       headerName: 'Statut', 
@@ -251,6 +277,7 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
             slotProps={{
               toolbar: {
                 onAddRow: handleAddRow,
+                onEditRow: handleEditRow, // NEW: Add handler for edit button
                 onDeleteSelectedRows: handleDeleteSelectedRows,
                 selectedRowIds: selectedRowIds,
                 onFilterChange: handleFilterChange,
@@ -322,6 +349,17 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
         onSuccess={handleCMDCreationSuccess}
       />
       
+      {/* NEW: Edit CMD Dialog */}
+      <EditCMDDialog
+        open={isEditCMDDialogOpen}
+        onClose={() => {
+          setIsEditCMDDialogOpen(false);
+          setSelectedCMDForEdit(null);
+        }}
+        onSuccess={handleCMDEditSuccess}
+        cmdData={selectedCMDForEdit}
+      />
+      
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
         open={isConfirmDeleteOpen}
@@ -330,8 +368,8 @@ function TableSectionCMD({ cmdRows, setCmdRows, onAssignCMD, otRows }) {
         title="Confirmer la suppression"
         message={
           selectedRowIds.length === 1
-            ? "Êtes-vous sûr de vouloir supprimer cette commande ?"
-            : `Êtes-vous sûr de vouloir supprimer ces ${selectedRowIds.length} commandes ?`
+            ? "Êtes-vous sûr de vouloir supprimer cet arrêt ?"
+            : `Êtes-vous sûr de vouloir supprimer ces ${selectedRowIds.length} arrêts ?`
         }
       />
     </Box>

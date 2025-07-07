@@ -12,6 +12,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import axios from 'axios';
+import { buildApiUrl, API_ENDPOINTS } from './apiConfig';
+
 
 function KPIHeader() {
   const [kpis, setKpis] = useState({
@@ -27,7 +29,8 @@ function KPIHeader() {
     const fetchKPIs = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:8800/kpis');
+        const response = await axios.get(buildApiUrl(API_ENDPOINTS.KPIS));
+        //
         
         if (response.data.status === 'success') {
           setKpis(response.data.data);
@@ -142,7 +145,7 @@ function KPIHeader() {
                 <InventoryIcon sx={{ color: '#2196f3', fontSize: 20, marginRight: 1 }} />
                 <Box>
                   <Typography variant="caption" color="textSecondary">
-                    Commandes traitées
+                    Arrêts traités
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
                     {kpis.processedCommands}

@@ -11,6 +11,7 @@ import {
 
 
 import axios from 'axios';
+import { buildApiUrl, API_ENDPOINTS } from '../components/apiConfig';
 
 // Custom Toolbar with styled buttons
 function CustomToolbar() {
@@ -32,7 +33,10 @@ export default function DataTableOT({ setOtIds }) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8800/ot';
+        //const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8800/ot';
+        //
+        const API_URL = process.env.REACT_APP_API_URL || buildApiUrl(API_ENDPOINTS.OT);
+
         const response = await axios.get(API_URL);
         const result = response.data.data;
 

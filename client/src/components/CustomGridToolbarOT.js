@@ -9,10 +9,14 @@ function CustomGridToolbarOT({
   onAddRow, 
   onDeleteSelectedRows, 
   onValidateSelectedRows,
+  onEditRow,           // Added new prop for edit action
   selectedRowIds, 
   validateButtonDisabled, 
   onFilterChange 
 }) {
+  // Check if exactly one row is selected for edit button
+  const isEditButtonDisabled = selectedRowIds.length !== 1;
+
   return (
     <GridToolbarContainer>
       <Button
@@ -22,6 +26,17 @@ function CustomGridToolbarOT({
         style={{ marginRight: '8px' }}
       >
         Ajouter un OT
+      </Button>
+
+      {/* New Edit Button */}
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={onEditRow}
+        disabled={isEditButtonDisabled}
+        style={{ marginRight: '8px' }}
+      >
+        Modifier OT
       </Button>
 
       <Button
